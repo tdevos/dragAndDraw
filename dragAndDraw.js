@@ -6,10 +6,12 @@
             top : null,
             left : null,
             width : null,
+            minWidth : null,
             height : null,
             start: null,
             stop: null,
-            class: null
+            class: null,
+            timeout : 0
         }, options );
         
         var $drawing = false;
@@ -17,10 +19,12 @@
         var $origin = [];
         var $current = [];
         var $fakeDiv = null;
+        var $timeOut = null;
         
         // Functions
         
-        var createFakeDiv = function(){
+        var createFakeDiv = function(e){
+            setOrigin(e);
             $fakeDiv = $("<div/>").appendTo($drawSpace).css({
                 "left" : $origin["x"],
                 "top" : $origin["y"]
@@ -35,8 +39,10 @@
             if($settings.grid){
                 $x = $positions.pageX;
                 $y = $positions.pageY;
-                $x = Math.round($x/$settings.grid[0]) * $settings.grid[0];
-                $y = Math.round($y/$settings.grid[0]) * $settings.grid[0];
+                if($settings.grid[0] !== null)
+                    $x = Math.round($x/$settings.grid[0]) * $settings.grid[0];
+                if($settings.grid[1] !== null)
+                    $y = Math.round($y/$settings.grid[1]) * $settings.grid[1];
                 return {"pageX" : $x, "pageY" : $y};
             }
             return $positions;
@@ -70,9 +76,14 @@
             
         }
         
-        var updateFakeDiv = function(){
+        var updateFakeDiv = function(e){
+            setCurrent(e);
+            $width = $current["x"] - $origin["x"];
+            if($settings.minWidth !== null && $width < $settings.minWidth){
+                $width = $settings.minWidth;
+            }
             $fakeDiv.css({
-                "width" : $current["x"] - $origin["x"],
+                "width" : $width,
                 "height" : $current["y"] - $origin["y"]
             })
         }
@@ -81,22 +92,26 @@
         
         $(document).on("mousemove", function(e){
             if($drawing){
-                setCurrent(e);
-                updateFakeDiv();
+                updateFakeDiv(e);
             }
         });
         this.on("mousedown", function(e){
-            $drawing = true;
-            setOrigin(e);
-            createFakeDiv();
-            if($settings.start !== null)
-                $settings.start($(this), $fakeDiv);
+            $timeOut = setTimeout(function(){
+                $drawing = true;
+                createFakeDiv(e);
+                updateFakeDiv(e);
+                if($settings.start !== null)
+                    $settings.start($(this), $fakeDiv);
+            }, $settings.timeout);
         });
         this.on("mouseup", function(){
-            $drawing = false;
-            $fakeDiv.removeClass("draw-temporary");
-            if($settings.stop !== null)
-            $settings.stop($(this), $fakeDiv);
+            clearTimeout($timeOut);
+            if($fakeDiv !== null){
+                $drawing = false;
+                $fakeDiv.removeClass("draw-temporary");
+                if($settings.stop !== null)
+                    $settings.stop($(this), $fakeDiv);
+            }
         });
         return this;
     };
