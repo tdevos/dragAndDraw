@@ -2,6 +2,7 @@
     $.fn.dragAndDraw = function(options) {
         
         var $settings = $.extend({
+            initialPosition: [0,0],
             grid : false,
             top : null,
             left : null,
@@ -15,7 +16,7 @@
         }, options );
         
         var $drawing = false;
-        var $drawSpace = this;
+        var $drawSpace = null;
         var $origin = [];
         var $current = [];
         var $fakeDiv = null;
@@ -36,43 +37,51 @@
         }
         
         var gridPosition = function($positions){
-            if($settings.grid){
-                $x = $positions.pageX;
-                $y = $positions.pageY;
-                if($settings.grid[0] !== null)
-                    $x = Math.round($x/$settings.grid[0]) * $settings.grid[0];
-                if($settings.grid[1] !== null)
-                    $y = Math.round($y/$settings.grid[1]) * $settings.grid[1];
-                return {"pageX" : $x, "pageY" : $y};
-            }
+            if($settings.grid[0] !== null)
+                $positions.x = Math.round($positions.x/$settings.grid[0]) * $settings.grid[0];
+            if($settings.grid[1] !== null)
+                $positions.y = Math.round($positions.y/$settings.grid[1]) * $settings.grid[1];
             return $positions;
         }
         
+        var getMousePosition = function(e){
+            $position = {
+                x : e.pageX - $($drawSpace).position().left,
+                y : e.pageY - $($drawSpace).position().top
+            }
+            if($settings.grid){
+                $position = gridPosition($position);
+            }
+            
+            return $position;
+        }
+        
         var setOrigin = function(e){
-            $position = gridPosition(e);
+            $position = getMousePosition(e);
             
             if($settings.top !== null)
                 $origin["y"] = $settings.top;
             else
-                $origin["y"] = $position.pageY;
+                $origin["y"] = $position.y;
             if($settings.left !== null)
                 $origin["x"] = $settings.left;
             else
-                $origin["x"] = $position.pageX;
+                $origin["x"] = $position.x;
+            
         }
         
         var setCurrent = function(e){
-            $position = gridPosition(e);
+            $position = getMousePosition(e);
             
             if($settings.height !== null)
                 $current["y"] = $origin["y"] + $settings.height;
             else
-                $current["y"] = $position.pageY;
+                $current["y"] = $position.y;
             
             if($settings.width !== null)
                 $current["x"] = $origin["x"] + $settings.width;
             else
-                $current["x"] = $position.pageX;
+                $current["x"] = $position.x;
             
         }
         
@@ -95,7 +104,9 @@
                 updateFakeDiv(e);
             }
         });
+        
         this.on("mousedown", function(e){
+            $drawSpace = e.target;
             $timeOut = setTimeout(function(){
                 $drawing = true;
                 createFakeDiv(e);
@@ -104,6 +115,7 @@
                     $settings.start($(this), $fakeDiv);
             }, $settings.timeout);
         });
+        
         this.on("mouseup", function(){
             clearTimeout($timeOut);
             if($fakeDiv !== null){
@@ -113,6 +125,7 @@
                     $settings.stop($(this), $fakeDiv);
             }
         });
+        
         return this;
     };
 }( jQuery ));
