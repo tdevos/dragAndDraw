@@ -124,6 +124,7 @@
                 if($settings.stop !== null)
                     $settings.stop($(this), $fakeDiv);
             }
+            $fakeDiv = null;
         });
         
         return this;
